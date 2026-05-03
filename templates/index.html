@@ -3,73 +3,131 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>XAI Credit Risk Predictor</title>
+    <title>TrustScore AI | Advanced Credit Risk XAI</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&family=Plus+Jakarta+Sans:wght@300;400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
+    <div class="glass-bg"></div>
     <div class="container">
         <header>
-            <h1>Credit Risk Predictor</h1>
-            <p>Explainable AI (XAI) System for Loan Approval</p>
+            <div class="logo">
+                <span class="logo-icon">▲</span>
+                <h1>TrustScore <span class="accent">AI</span></h1>
+            </div>
+            <p class="subtitle">Explainable Artificial Intelligence for Institutional Loan Assessment</p>
         </header>
 
         <main>
             <section class="form-section">
+                <div class="section-header">
+                    <h2>Applicant Analytics</h2>
+                    <p>Enter applicant details to generate a risk profile and XAI breakdown.</p>
+                </div>
                 <form id="prediction-form">
                     <div class="grid">
                         <div class="form-group">
                             <label>Age</label>
-                            <input type="number" name="person_age" value="25" required>
+                            <input type="number" name="person_age" value="25" min="18" max="100" required>
                         </div>
                         <div class="form-group">
-                            <label>Annual Income</label>
-                            <input type="number" name="person_income" value="50000" required>
+                            <label>Annual Income ($)</label>
+                            <input type="number" name="person_income" value="50000" min="0" required>
                         </div>
                         <div class="form-group">
-                            <label>Home Ownership (0-3)</label>
-                            <input type="number" name="person_home_ownership" value="1" required>
+                            <label>Home Ownership</label>
+                            <select name="person_home_ownership" required>
+                                <option value="0">Mortgage</option>
+                                <option value="1">Other</option>
+                                <option value="2">Own</option>
+                                <option value="3" selected>Rent</option>
+                            </select>
                         </div>
                         <div class="form-group">
                             <label>Employment Length (Years)</label>
-                            <input type="number" name="person_emp_length" value="2" required>
+                            <input type="number" name="person_emp_length" value="2" min="0" max="50" required>
                         </div>
                         <div class="form-group">
-                            <label>Loan Intent (0-5)</label>
-                            <input type="number" name="loan_intent" value="2" required>
+                            <label>Loan Intent</label>
+                            <select name="loan_intent" required>
+                                <option value="0">Debt Consolidation</option>
+                                <option value="1" selected>Education</option>
+                                <option value="2">Home Improvement</option>
+                                <option value="3">Medical</option>
+                                <option value="4">Personal</option>
+                                <option value="5">Venture</option>
+                            </select>
                         </div>
                         <div class="form-group">
-                            <label>Loan Amount</label>
-                            <input type="number" name="loan_amnt" value="10000" required>
+                            <label>Loan Grade</label>
+                            <select name="loan_grade" required>
+                                <option value="0" selected>A</option>
+                                <option value="1">B</option>
+                                <option value="2">C</option>
+                                <option value="3">D</option>
+                                <option value="4">E</option>
+                                <option value="5">F</option>
+                                <option value="6">G</option>
+                            </select>
                         </div>
                         <div class="form-group">
-                            <label>Interest Rate</label>
-                            <input type="number" step="0.01" name="loan_int_rate" value="11.0" required>
+                            <label>Loan Amount ($)</label>
+                            <input type="number" name="loan_amnt" value="10000" min="0" required>
                         </div>
                         <div class="form-group">
-                            <label>Percent Income</label>
-                            <input type="number" step="0.01" name="loan_percent_income" value="0.2" required>
+                            <label>Interest Rate (%)</label>
+                            <input type="number" step="0.01" name="loan_int_rate" value="11.0" min="0" required>
                         </div>
                         <div class="form-group">
-                            <label>Historical Default (0 or 1)</label>
-                            <input type="number" name="cb_person_default_on_file" value="0" required>
+                            <label>Percent of Income</label>
+                            <input type="number" step="0.01" name="loan_percent_income" value="0.2" min="0" max="1" required>
                         </div>
                         <div class="form-group">
-                            <label>Credit History Length</label>
-                            <input type="number" name="cb_person_cred_hist_length" value="3" required>
+                            <label>Historical Default</label>
+                            <select name="cb_person_default_on_file" required>
+                                <option value="0" selected>No Prior Default</option>
+                                <option value="1">Prior Default Exists</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Credit History Length (Yrs)</label>
+                            <input type="number" name="cb_person_cred_hist_length" value="3" min="0" required>
                         </div>
                     </div>
-                    <button type="submit" id="submit-btn">Analyze Credit Risk</button>
+                    <button type="submit" id="submit-btn">
+                        <span>Analyze Risk Profile</span>
+                        <div class="btn-glow"></div>
+                    </button>
                 </form>
             </section>
 
             <section id="result-section" class="hidden">
                 <div class="result-card">
-                    <h2>Result: <span id="prediction-text"></span></h2>
-                    <p>Risk Probability: <span id="risk-percent"></span>%</p>
-                    <hr>
-                    <h3>Why this decision? (XAI Explanation)</h3>
-                    <div id="explanation-chart">
+                    <div class="result-header">
+                        <div class="status-badge">
+                            <span id="prediction-text"></span>
                         </div>
+                        <div class="score-container">
+                            <span class="score-label">Risk Probability</span>
+                            <span id="risk-percent" class="score-value"></span><span class="unit">%</span>
+                        </div>
+                    </div>
+                    
+                    <div class="explanation-container">
+                        <div class="explanation-header">
+                            <h3>XAI Decision Matrix</h3>
+                            <p>SHAP influence values determining the current risk assessment.</p>
+                        </div>
+                        <div id="explanation-chart">
+                            <!-- JS injected bars -->
+                        </div>
+                        <div class="legend">
+                            <span class="legend-item"><span class="dot danger"></span> Increases Risk</span>
+                            <span class="legend-item"><span class="dot primary"></span> Decreases Risk</span>
+                        </div>
+                    </div>
                 </div>
             </section>
         </main>
@@ -77,4 +135,4 @@
 
     <script src="{{ url_for('static', filename='js/script.js') }}"></script>
 </body>
-</html>
+</html>
