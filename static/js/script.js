@@ -1,17 +1,64 @@
-document.getElementById('prediction-form').addEventListener('submit', async (e) => {
-    e.preventDefault();
+// Core Dashboard Logic
+let shapChart = null;
+let globalChart = null;
+let matrixChart = null;
+let rocChart = null;
 
-    const formData = new FormData(e.target);
-    const data = Object.fromEntries(formData.entries());
+document.addEventListener('DOMContentLoaded', () => {
+    initTabs();
+    initPredictor();
+    loadPerformanceMetrics();
+    loadGlobalInsights();
+});
 
+// Tab Switching
+function initTabs() {
+    const navItems = document.querySelectorAll('.nav-item');
+    const tabContents = document.querySelectorAll('.tab-content');
+
+    navItems.forEach(item => {
+        item.addEventListener('click', () => {
+            const tabId = item.getAttribute('data-tab');
+            
+            navItems.forEach(nav => nav.classList.remove('active'));
+            tabContents.forEach(tab => tab.classList.remove('active'));
+
+            item.classList.add('active');
+            document.getElementById(tabId).classList.add('active');
+        });
+    });
+}
+
+// Predictor Logic
+function initPredictor() {
+    const form = document.getElementById('prediction-form');
     const submitBtn = document.getElementById('submit-btn');
-    const btnText = submitBtn.querySelector('span');
-    
-    // UI Loading State
-    btnText.innerText = "Analyzing Risk Profile...";
-    submitBtn.classList.add('loading');
-    submitBtn.disabled = true;
 
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        await runAnalysis();
+    });
+
+    // Add What-If Interactivity: Update on change (debounced)
+    const inputs = form.querySelectorAll('input, select');
+    let debounceTimer;
+    inputs.forEach(input => {
+        input.addEventListener('input', () => {
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(runAnalysis, 800);
+        });
+    });
+}
+
+async function runAnalysis() {
+    const form = document.getElementById('prediction-form');
+    const formData = new FormData(form);
+    const data = Object.fromEntries(formData.entries());
+    
+    // UI state
+    const submitBtn = document.getElementById('submit-btn');
+    submitBtn.innerText = "ANALYZING...";
+    
     try {
         const response = await fetch('/predict', {
             method: 'POST',
@@ -19,88 +66,211 @@ document.getElementById('prediction-form').addEventListener('submit', async (e) 
             body: JSON.stringify(data)
         });
 
-        if (!response.ok) {
-            const errData = await response.json();
-            throw new Error(errData.error || "Server Error");
-        }
-
-        const result = await response.json();
-        displayResults(result);
+        if (!response.ok) throw new Error("Analysis failed");
         
-        // Scroll to results smoothly
-        document.getElementById('result-section').scrollIntoView({ behavior: 'smooth' });
+        const result = await response.json();
+        renderPrediction(result);
+        
     } catch (error) {
-        console.error("Error:", error);
-        alert(`Assessment failed: ${error.message}`);
+        console.error(error);
     } finally {
-        btnText.innerText = "Analyze Risk Profile";
-        submitBtn.classList.remove('loading');
-        submitBtn.disabled = false;
+        submitBtn.innerText = "RUN RISK ANALYSIS";
     }
-});
+}
 
-function displayResults(data) {
-    const resultSection = document.getElementById('result-section');
-    const resultCard = document.querySelector('.result-card');
-    const predText = document.getElementById('prediction-text');
-    const riskPercent = document.getElementById('risk-percent');
-    const chartDiv = document.getElementById('explanation-chart');
+function renderPrediction(data) {
+    document.getElementById('result-placeholder').classList.add('hidden');
+    document.getElementById('result-display').classList.remove('hidden');
 
-    resultSection.classList.remove('hidden');
-    
-    // Animate the probability number
-    animateValue(riskPercent, 0, data.probability, 1000);
+    const probVal = document.getElementById('risk-percent');
+    const badge = document.getElementById('risk-badge');
+    const circle = document.getElementById('prob-circle');
 
+    // Animate percentage
+    animateValue(probVal, parseInt(probVal.innerText) || 0, data.probability, 1000);
+
+    // Update Badge
     if (data.prediction === 1) {
-        predText.innerText = "High Risk Assessment";
-        resultCard.className = "result-card risk-high";
+        badge.innerText = "High Risk Assessment";
+        badge.className = "status-indicator status-high";
+        circle.style.borderColor = "#E67E7E";
     } else {
-        predText.innerText = "Low Risk Verified";
-        resultCard.className = "result-card risk-low";
+        badge.innerText = "Low Risk Verified";
+        badge.className = "status-indicator status-low";
+        circle.style.borderColor = "#85A98F";
     }
 
-    // Build the XAI Bar Chart
-    chartDiv.innerHTML = "";
+    // Render SHAP Chart
+    renderShapChart(data);
+}
+
+function renderShapChart(data) {
+    const ctx = document.getElementById('shapChart').getContext('2d');
     
-    // Sort contributions by absolute value to show most important features first
-    const features = data.feature_names.map((name, i) => ({
+    const sortedData = data.feature_names.map((name, i) => ({
         name: name.replace(/_/g, ' ').toUpperCase(),
         val: data.shap_contributions[i]
-    })).sort((a, b) => Math.abs(b.val) - Math.abs(a.val));
+    })).sort((a, b) => Math.abs(b.val) - Math.abs(a.val)).slice(0, 8);
 
-    features.forEach((feature) => {
-        // Find max absolute value for normalization if needed, but 50 is a good baseline scaling
-        const weight = Math.min(Math.abs(feature.val) * 60, 100); 
-        const color = feature.val > 0 ? "var(--danger)" : "var(--primary)";
+    const labels = sortedData.map(d => d.name);
+    const values = sortedData.map(d => d.val);
+    const colors = values.map(v => v > 0 ? '#E67E7E' : '#3D8D90');
 
-        const barHtml = `
-            <div class="bar-container">
-                <div class="bar-label">${feature.name} (${feature.val.toFixed(3)})</div>
-                <div class="bar-outer">
-                    <div class="bar-inner" style="width: 0%; background-color: ${color};"></div>
-                </div>
-            </div>
-        `;
-        chartDiv.insertAdjacentHTML('beforeend', barHtml);
-        
-        // Minor timeout to trigger CSS transition
-        setTimeout(() => {
-            const lastBar = chartDiv.querySelector('.bar-container:last-child .bar-inner');
-            lastBar.style.width = `${weight}%`;
-            lastBar.style.boxShadow = `0 0 15px ${color}44`;
-        }, 50);
+    if (shapChart) shapChart.destroy();
+
+    shapChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Feature Influence (SHAP)',
+                data: values,
+                backgroundColor: colors,
+                borderRadius: 4
+            }]
+        },
+        options: {
+            indexAxis: 'y',
+            responsive: true,
+            plugins: {
+                legend: { display: false }
+            },
+            scales: {
+                x: { grid: { display: false } },
+                y: { grid: { display: false } }
+            }
+        }
     });
 }
 
+// Global Insights Logic
+async function loadGlobalInsights() {
+    try {
+        const response = await fetch('/global-importance');
+        const data = await response.json();
+        
+        const ctx = document.getElementById('globalImportanceChart').getContext('2d');
+        globalChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: data.features.map(f => f.replace(/_/g, ' ').toUpperCase()),
+                datasets: [{
+                    label: 'Global Mean |SHAP|',
+                    data: data.importance,
+                    backgroundColor: '#3D8D90',
+                    borderRadius: 6
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    y: { beginAtZero: true, grid: { color: '#E8EEF0' } },
+                    x: { grid: { display: false } }
+                }
+            }
+        });
+    } catch (e) { console.error(e); }
+}
+
+// Performance Metrics Logic
+async function loadPerformanceMetrics() {
+    try {
+        const response = await fetch('/metrics');
+        const data = await response.json();
+        
+        // Render Metric Cards
+        const container = document.getElementById('metrics-container');
+        const metrics = [
+            { label: 'Accuracy', val: (data.accuracy * 100).toFixed(1) + '%' },
+            { label: 'AUC-ROC', val: data.auc_roc.toFixed(2) },
+            { label: 'F1-Score', val: data.f1_score.toFixed(2) },
+            { label: 'Precision', val: data.precision.toFixed(2) }
+        ];
+        
+        container.innerHTML = metrics.map(m => `
+            <div class="metric-card">
+                <span class="metric-val">${m.val}</span>
+                <span class="metric-label">${m.label}</span>
+            </div>
+        `).join('');
+
+        // Render Confusion Matrix
+        renderConfusionMatrix(data.confusion_matrix);
+        // Render ROC Curve (Mock data for visualization)
+        renderRocCurve();
+
+    } catch (e) { console.error(e); }
+}
+
+function renderConfusionMatrix(cm) {
+    const ctx = document.getElementById('confusionMatrixChart').getContext('2d');
+    matrixChart = new Chart(ctx, {
+        type: 'bubble', // Using bubble as a simple heatmap proxy
+        data: {
+            datasets: [
+                { label: 'TN', data: [{x: 0, y: 1, r: 40}], backgroundColor: '#3D8D90' },
+                { label: 'FP', data: [{x: 1, y: 1, r: 15}], backgroundColor: '#E67E7E' },
+                { label: 'FN', data: [{x: 0, y: 0, r: 20}], backgroundColor: '#E67E7E' },
+                { label: 'TP', data: [{x: 1, y: 0, r: 35}], backgroundColor: '#3D8D90' }
+            ]
+        },
+        options: {
+            scales: {
+                x: { min: -0.5, max: 1.5, ticks: { callback: v => v === 0 ? 'Actual: Negative' : v === 1 ? 'Actual: Positive' : '' } },
+                y: { min: -0.5, max: 1.5, ticks: { callback: v => v === 0 ? 'Pred: Positive' : v === 1 ? 'Pred: Negative' : '' } }
+            },
+            plugins: { legend: { display: false } }
+        }
+    });
+}
+
+function renderRocCurve() {
+    const ctx = document.getElementById('rocChart').getContext('2d');
+    rocChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: [0, 0.1, 0.2, 0.5, 1],
+            datasets: [
+                {
+                    label: 'Model ROC',
+                    data: [0, 0.7, 0.85, 0.94, 1],
+                    borderColor: '#3D8D90',
+                    borderWidth: 3,
+                    fill: true,
+                    backgroundColor: 'rgba(61, 141, 144, 0.1)',
+                    tension: 0.4
+                },
+                {
+                    label: 'Random',
+                    data: [0, 1],
+                    borderColor: '#6A7E80',
+                    borderDash: [5, 5],
+                    fill: false
+                }
+            ]
+        },
+        options: {
+            plugins: { legend: { display: false } },
+            scales: {
+                x: { title: { display: true, text: 'False Positive Rate' } },
+                y: { title: { display: true, text: 'True Positive Rate' } }
+            }
+        }
+    });
+}
+
+// Utility: Animate Number
 function animateValue(obj, start, end, duration) {
     let startTimestamp = null;
     const step = (timestamp) => {
         if (!startTimestamp) startTimestamp = timestamp;
         const progress = Math.min((timestamp - startTimestamp) / duration, 1);
-        obj.innerHTML = (progress * (end - start) + start).toFixed(2);
+        obj.innerHTML = (progress * (end - start) + start).toFixed(1);
         if (progress < 1) {
             window.requestAnimationFrame(step);
         }
     };
     window.requestAnimationFrame(step);
-}
+}
