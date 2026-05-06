@@ -1,29 +1,30 @@
 :root {
-    /* Refined Color Palette */
-    --brand-teal: #8EA6A9;
-    --brand-mint: #E5F5F4;
-    --brand-red: #FF0000;
-    --brand-white: #FFFFFF;
+    /* Obsidian Dark Palette */
+    --brand-black: #0A0F10;
+    --brand-card: rgba(20, 30, 32, 0.7);
+    --brand-neon-mint: #00FFAA;
+    --brand-neon-red: #FF3366;
+    --brand-teal: #142E30;
+    --brand-white: #E0E6E6;
     
     /* Semantic Colors */
-    --primary-action: var(--brand-teal);
-    --secondary-bg: var(--brand-mint);
-    --critical: var(--brand-red);
-    --bg-main: #F4F7F7;
-    --white: #ffffff;
+    --primary-action: var(--brand-neon-red);
+    --secondary-bg: var(--brand-teal);
+    --critical: var(--brand-neon-red);
+    --glow-mint: rgba(0, 255, 170, 0.15);
+    --glow-red: rgba(255, 51, 102, 0.25);
     
     /* Text Colors */
-    --text-primary: #2C3A3B;
-    --text-secondary: #5F7476;
-    --text-muted: #94A8AB;
+    --text-primary: #E0E6E6;
+    --text-secondary: #94A8AB;
+    --text-muted: #5F7476;
     
     /* System Vars */
     --font-main: 'Plus Jakarta Sans', sans-serif;
     --font-head: 'Outfit', sans-serif;
-    --shadow-soft: 0 8px 24px rgba(142, 166, 169, 0.08);
-    --shadow-bold: 0 16px 32px rgba(142, 166, 169, 0.12);
-    --border-radius: 10px;
-    --transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    --shadow-neon: 0 0 20px var(--glow-red);
+    --border-radius: 12px;
+    --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 * {
@@ -34,10 +35,11 @@
 
 body {
     font-family: var(--font-main);
-    background-color: var(--bg-main);
+    background-color: var(--brand-black);
     color: var(--text-primary);
     line-height: 1.6;
     overflow-x: hidden;
+    background-image: radial-gradient(circle at 50% 0%, #142E30 0%, transparent 50%);
 }
 
 /* Layout */
@@ -49,8 +51,8 @@ body {
 
 /* Sidebar */
 aside {
-    background: var(--brand-white);
-    border-right: 1px solid var(--brand-mint);
+    background: rgba(10, 15, 16, 0.95);
+    border-right: 1px solid var(--brand-teal);
     color: var(--text-primary);
     padding: 40px 24px;
     display: flex;
@@ -59,6 +61,7 @@ aside {
     position: sticky;
     top: 0;
     height: 100vh;
+    backdrop-filter: blur(10px);
 }
 
 .logo {
@@ -107,16 +110,16 @@ nav ul {
 }
 
 .nav-item:hover {
-    background: var(--brand-mint);
-    color: var(--text-primary);
+    background: var(--glow-mint);
+    color: var(--brand-neon-mint);
     opacity: 1;
 }
 
 .nav-item.active {
-    background: var(--brand-teal);
-    color: var(--white);
+    background: var(--brand-neon-mint);
+    color: var(--brand-black);
     opacity: 1;
-    box-shadow: var(--shadow-soft);
+    box-shadow: 0 0 15px var(--brand-neon-mint);
 }
 
 /* Main Content */
@@ -163,11 +166,18 @@ header.section-header p {
 }
 
 .card {
-    background: var(--white);
+    background: var(--brand-card);
     border-radius: var(--border-radius);
     padding: 32px;
-    box-shadow: var(--shadow-soft);
-    border: 1px solid var(--brand-mint);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    transition: var(--transition);
+}
+
+.card:hover {
+    border-color: var(--brand-teal);
+    transform: translateY(-5px);
 }
 
 .card-title {
@@ -203,18 +213,20 @@ header.section-header p {
 
 input, select {
     padding: 12px 16px;
-    border: 2px solid #E8EEF0;
+    border: 1px solid var(--brand-teal);
     border-radius: 8px;
     font-family: var(--font-main);
     font-size: 0.95rem;
     transition: var(--transition);
-    background: #FAFCFD;
+    background: rgba(255, 255, 255, 0.03);
+    color: var(--white);
 }
 
 input:focus, select:focus {
     outline: none;
-    border-color: var(--primary-teal);
-    background: var(--white);
+    border-color: var(--brand-neon-mint);
+    background: rgba(255, 255, 255, 0.05);
+    box-shadow: 0 0 10px var(--glow-mint);
 }
 
 .full-width {
@@ -223,39 +235,41 @@ input:focus, select:focus {
 
 /* Predict Button */
 .predict-btn {
-    background: var(--brand-red);
+    background: var(--brand-neon-red);
     color: var(--white);
     border: none;
     padding: 18px;
     border-radius: 8px;
-    font-weight: 700;
+    font-weight: 800;
     font-size: 1rem;
     cursor: pointer;
     transition: var(--transition);
     margin-top: 12px;
-    letter-spacing: 0.05em;
+    letter-spacing: 0.1em;
+    box-shadow: 0 0 15px var(--glow-red);
 }
 
 .predict-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(255, 0, 0, 0.25);
-    background: #E60000;
+    transform: scale(1.02);
+    box-shadow: 0 0 25px var(--brand-neon-red);
 }
 
 .secondary-btn {
-    background: var(--brand-white);
-    color: var(--brand-teal);
-    border: 2px solid var(--brand-teal);
+    background: transparent;
+    color: var(--brand-neon-mint);
+    border: 1px solid var(--brand-neon-mint);
     padding: 14px;
     border-radius: 8px;
     font-weight: 700;
     font-size: 0.9rem;
     cursor: pointer;
     transition: var(--transition);
+    letter-spacing: 0.05em;
 }
 
 .secondary-btn:hover {
-    background: var(--brand-mint);
+    background: var(--glow-mint);
+    box-shadow: 0 0 15px var(--glow-mint);
 }
 
 .mitigation-notes {
@@ -279,20 +293,24 @@ input:focus, select:focus {
     width: 140px;
     height: 140px;
     border-radius: 50%;
-    border: 8px solid var(--brand-mint);
+    border: 4px solid var(--brand-teal);
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     margin: 0 auto 24px;
     position: relative;
+    background: rgba(0, 0, 0, 0.3);
+    box-shadow: inset 0 0 20px rgba(0,0,0,0.5);
 }
 
 .prob-val {
-    font-size: 2.2rem;
-    font-weight: 800;
+    font-size: 2.8rem;
+    font-weight: 900;
     font-family: var(--font-head);
     line-height: 1;
+    color: var(--brand-neon-mint);
+    text-shadow: 0 0 15px var(--glow-mint);
 }
 
 .prob-label {
@@ -377,39 +395,79 @@ footer {
 /* Utilities */
 .hidden { display: none; }
 
-@media print {
-    aside, .predict-btn, #export-btn, .nav-item, footer, .section-header p {
-        display: none !important;
-    }
-    
-    main {
-        padding: 0;
-        margin: 0;
-    }
-    
-    .tab-content {
-        display: block !important;
-        opacity: 1 !important;
-        transform: none !important;
-    }
-    
-    .grid-2, .perf-grid {
-        display: block;
-    }
-    
-    .card {
-        box-shadow: none;
-        border: 1px solid #eee;
-        break-inside: avoid;
-        margin-bottom: 20px;
-    }
-    
-    body {
-        background: white;
-    }
-    
-    .logo {
-        margin-bottom: 30px;
-        color: black;
-    }
+/* Biometric Scan HUD */
+.biometric-container {
+    width: 100%;
+    height: 200px;
+    background: #000;
+    border-radius: 8px;
+    overflow: hidden;
+    position: relative;
+    margin-bottom: 24px;
+    border: 1px solid var(--brand-teal);
+}
+
+#webcam-feed {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    opacity: 0.6;
+}
+
+.hud-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border: 2px solid var(--brand-neon-mint);
+    pointer-events: none;
+    background: linear-gradient(rgba(0,255,170,0.05) 1px, transparent 1px) 0 0 / 20px 20px;
+    animation: pulseScan 2s infinite;
+}
+
+.scan-line {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background: var(--brand-neon-mint);
+    box-shadow: 0 0 15px var(--brand-neon-mint);
+    animation: scanMove 3s infinite linear;
+}
+
+@keyframes scanMove {
+    0% { top: 0; }
+    100% { top: 100%; }
+}
+
+@keyframes pulseScan {
+    0%, 100% { opacity: 0.3; }
+    50% { opacity: 0.6; }
+}
+
+/* AI Analysis Terminal */
+.ai-terminal {
+    background: rgba(0, 0, 0, 0.4);
+    border-radius: 6px;
+    padding: 16px;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 0.85rem;
+    color: var(--brand-neon-mint);
+    border: 1px solid var(--brand-teal);
+    min-height: 100px;
+}
+
+.terminal-cursor {
+    display: inline-block;
+    width: 8px;
+    height: 15px;
+    background: var(--brand-neon-mint);
+    animation: blink 1s infinite;
+}
+
+@keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0; }
 }

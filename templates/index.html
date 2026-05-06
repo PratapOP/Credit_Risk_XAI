@@ -63,7 +63,18 @@
 
                 <div class="grid-2">
                     <div class="card">
-                        <div class="card-title">Applicant Details</div>
+                        <div class="card-title">Institutional Intake Profile</div>
+                        
+                        <!-- Feature: Biometric HUD -->
+                        <div class="biometric-container">
+                            <video id="webcam-feed" autoplay playsinline></video>
+                            <div class="hud-overlay"></div>
+                            <div class="scan-line"></div>
+                            <div style="position: absolute; bottom: 10px; right: 10px; color: var(--brand-neon-mint); font-size: 0.6rem; font-family: monospace;">
+                                STATUS: READY_TO_SCAN
+                            </div>
+                        </div>
+
                         <form id="prediction-form">
                             <div class="form-grid">
                                 <div class="form-group">
@@ -180,6 +191,18 @@
                             </div>
 
                             <!-- Feature: Decision Report Export -->
+                            <!-- Feature: AI Risk Analyst (Clinical Summary) -->
+                            <div class="card" style="margin-top: 24px;">
+                                <div class="card-title">
+                                    <span>AI Risk Investigator</span>
+                                    <span style="font-size: 0.7rem; color: var(--brand-neon-mint); border: 1px solid var(--brand-neon-mint); padding: 2px 6px; border-radius: 4px;">SYSTEM_LIVE</span>
+                                </div>
+                                <div id="ai-terminal-output" class="ai-terminal">
+                                    <span class="terminal-msg">Initializing Secure Link...</span>
+                                    <span class="terminal-cursor"></span>
+                                </div>
+                            </div>
+
                             <button id="export-btn" class="secondary-btn" style="width: 100%; margin-top: 24px;">
                                 <i class="fas fa-file-pdf"></i> EXPORT DECISION REPORT
                             </button>
