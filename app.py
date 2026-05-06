@@ -1,3 +1,5 @@
+import json
+import os
 from flask import Flask, render_template, request, jsonify
 import pickle
 import pandas as pd
@@ -5,48 +7,103 @@ import numpy as np
 
 app = Flask(__name__)
 
-# 1. LOAD THE MODELS
+# --- CONSTANTS & CONFIGURATION ---
+DATA_DIR = 'data'
+METRICS_FILE = os.path.join(DATA_DIR, 'metrics.json')
+
+# Mappings based on model training standards
+MAPPINGS = {
+    'person_home_ownership': {'MORTGAGE': 0, 'OTHER': 1, 'OWN': 2, 'RENT': 3},
+    'loan_intent': {
+        'DEBTCONSOLIDATION': 0, 'EDUCATION': 1, 'HOMEIMPROVEMENT': 2, 
+        'MEDICAL': 3, 'PERSONAL': 4, 'VENTURE': 5
+    },
+    'cb_person_default_on_file': {'N': 0, 'Y': 1},
+    'loan_grade': {'A': 0, 'B': 1, 'C': 2, 'D': 3, 'E': 4, 'F': 5, 'G': 6}
+}
+
+VALIDATION_RANGES = {
+    'person_age': (18, 95),
+    'person_income': (1, 5000000),
+    'person_emp_length': (0, 60),
+    'loan_amnt': (500, 100000),
+    'loan_int_rate': (0.1, 35.0),
+    'loan_percent_income': (0.0, 1.0),
+    'cb_person_cred_hist_length': (0, 40)
+}
+
+# --- MODEL LOADING ---
 try:
     model = pickle.load(open('models/model.pkl', 'rb'))
     explainer = pickle.load(open('models/explainer.pkl', 'rb'))
     print("AI Model and Explainer loaded successfully.")
 except Exception as e:
     print(f"CRITICAL ERROR LOADING MODELS: {e}")
+    model = None
+    explainer = None
+
+def preprocess_input(data):
+    """
+    Validates and transforms raw frontend data into model-ready format.
+    """
+    processed = {}
+    errors = []
+
+    # 1. Feature Alignment Order
+    feature_order = [
+        'person_age', 'person_income', 'person_home_ownership', 
+        'person_emp_length', 'loan_intent', 'loan_grade', 
+        'loan_amnt', 'loan_int_rate', 'loan_percent_income', 
+        'cb_person_default_on_file', 'cb_person_cred_hist_length'
+    ]
+
+    for col in feature_order:
+        val = data.get(col)
+        if val is None:
+            errors.append(f"Missing field: {col}")
+            continue
+
+        # 2. Categorical Mapping
+        if col in MAPPINGS:
+            # Handle both strings (from new UI) and legacy integers
+            if isinstance(val, str) and val.upper() in MAPPINGS[col]:
+                processed[col] = MAPPINGS[col][val.upper()]
+            elif str(val).isdigit() and int(val) in MAPPINGS[col].values():
+                processed[col] = int(val)
+            else:
+                errors.append(f"Invalid categorical value for {col}: {val}")
+        
+        # 3. Numeric Validation
+        else:
+            try:
+                num_val = float(val)
+                min_v, max_v = VALIDATION_RANGES.get(col, (-float('inf'), float('inf')))
+                if not (min_v <= num_val <= max_v):
+                    errors.append(f"{col} out of range ({min_v} - {max_v})")
+                processed[col] = num_val
+            except ValueError:
+                errors.append(f"Invalid numeric value for {col}: {val}")
+
+    return processed, errors, feature_order
 
 @app.route('/')
 def index():
-    """Renders the main HTML page."""
     return render_template('index.html')
 
 @app.route('/predict', methods=['POST'])
 def predict():
-    """
-    Handles the prediction request from the JS frontend.
-    """
+    if model is None or explainer is None:
+        return jsonify({'error': 'Model service unavailable'}), 503
+
     try:
-        data = request.json
+        raw_data = request.json
+        processed_data, errors, feature_order = preprocess_input(raw_data)
         
-        # 2. FEATURE ALIGNMENT
-        feature_order = [
-            'person_age', 'person_income', 'person_home_ownership', 
-            'person_emp_length', 'loan_intent', 'loan_grade', 
-            'loan_amnt', 'loan_int_rate', 'loan_percent_income', 
-            'cb_person_default_on_file', 'cb_person_cred_hist_length'
-        ]
-        
-        # Basic Validation
-        required_fields = set(feature_order)
-        if not required_fields.issubset(data.keys()):
-            return jsonify({'error': 'Missing required fields'}), 400
+        if errors:
+            return jsonify({'error': 'Validation Failed', 'details': errors}), 400
 
         # Create DataFrame and enforce column order
-        input_df = pd.DataFrame([data])
-        
-        # Ensure numeric conversion (since some might come as strings from JSON/Select)
-        for col in feature_order:
-            input_df[col] = pd.to_numeric(input_df[col])
-
-        input_df = input_df[feature_order]
+        input_df = pd.DataFrame([processed_data])[feature_order]
         
         # 3. PREDICTION
         prediction = int(model.predict(input_df)[0])
@@ -56,14 +113,10 @@ def predict():
         shap_vals = explainer.shap_values(input_df)
         
         if isinstance(shap_vals, list):
-            # For Binary Classification, SHAP often returns a list [neg_class_shap, pos_class_shap]
-            # We want the contributions towards the positive class (Probability of Default)
             contributions = shap_vals[1][0].tolist() if len(shap_vals) > 1 else shap_vals[0].tolist()
         else:
-            # For some XGBoost versions, it might be a single array
             contributions = shap_vals[0].tolist()
 
-        # 5. RETURN RESULTS
         return jsonify({
             'prediction': prediction,
             'probability': round(probability * 100, 2),
@@ -72,40 +125,35 @@ def predict():
         })
         
     except Exception as e:
-        print(f"\n--- ERROR DURING PREDICTION ---\n{str(e)}\n-------------------------------\n")
-        return jsonify({'error': str(e)}), 500
+        app.logger.error(f"Prediction Error: {str(e)}")
+        return jsonify({'error': 'Internal analysis error'}), 500
 
 @app.route('/metrics')
 def get_metrics():
-    """Returns model performance metrics for the research dashboard."""
-    # In a real scenario, these would be calculated or loaded from a metrics file
-    return jsonify({
-        'accuracy': 0.91,
-        'precision': 0.88,
-        'recall': 0.84,
-        'f1_score': 0.86,
-        'auc_roc': 0.94,
-        'confusion_matrix': {
-            'tp': 840, 'fp': 110,
-            'tn': 2100, 'fn': 150
-        }
-    })
+    try:
+        with open(METRICS_FILE, 'r') as f:
+            data = json.load(f)
+        return jsonify(data['metrics'])
+    except Exception as e:
+        return jsonify({'error': 'Could not load metrics'}), 500
 
 @app.route('/global-importance')
 def get_global_importance():
-    """Returns global feature importance (pre-calculated for performance)."""
-    # These represent the overall influence of features across the entire dataset
-    features = [
-        'person_income', 'loan_percent_income', 'loan_int_rate', 
-        'person_age', 'loan_amnt', 'person_emp_length', 
-        'cb_person_default_on_file', 'loan_grade', 'person_home_ownership',
-        'cb_person_cred_hist_length', 'loan_intent'
-    ]
-    importance = [0.28, 0.22, 0.18, 0.12, 0.08, 0.05, 0.03, 0.02, 0.01, 0.005, 0.005]
+    try:
+        with open(METRICS_FILE, 'r') as f:
+            data = json.load(f)
+        return jsonify(data['global_importance'])
+    except Exception as e:
+        return jsonify({'error': 'Could not load importance data'}), 500
+
+@app.route('/health')
+def health():
     return jsonify({
-        'features': features,
-        'importance': importance
+        'status': 'healthy',
+        'model_loaded': model is not None,
+        'explainer_loaded': explainer is not None
     })
 
 if __name__ == '__main__':
-    app.run(debug=True, port=5000)
+    app.run(debug=True, port=5000)
+

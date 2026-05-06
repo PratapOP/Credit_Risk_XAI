@@ -66,13 +66,22 @@ async function runAnalysis() {
             body: JSON.stringify(data)
         });
 
-        if (!response.ok) throw new Error("Analysis failed");
-        
         const result = await response.json();
+
+        if (!response.ok) {
+            if (response.status === 400 && result.details) {
+                alert(`Validation Failed:\n${result.details.join('\n')}`);
+            } else {
+                throw new Error(result.error || "Analysis failed");
+            }
+            return;
+        }
+        
         renderPrediction(result);
         
     } catch (error) {
         console.error(error);
+        alert(`Error: ${error.message}`);
     } finally {
         submitBtn.innerText = "RUN RISK ANALYSIS";
     }
@@ -87,17 +96,17 @@ function renderPrediction(data) {
     const circle = document.getElementById('prob-circle');
 
     // Animate percentage
-    animateValue(probVal, parseInt(probVal.innerText) || 0, data.probability, 1000);
+    animateValue(probVal, parseFloat(probVal.innerText) || 0, data.probability, 1000);
 
     // Update Badge
     if (data.prediction === 1) {
         badge.innerText = "High Risk Assessment";
         badge.className = "status-indicator status-high";
-        circle.style.borderColor = "#E67E7E";
+        circle.style.borderColor = "#FF0000";
     } else {
         badge.innerText = "Low Risk Verified";
         badge.className = "status-indicator status-low";
-        circle.style.borderColor = "#85A98F";
+        circle.style.borderColor = "#8EA6A9";
     }
 
     // Render SHAP Chart
@@ -114,7 +123,7 @@ function renderShapChart(data) {
 
     const labels = sortedData.map(d => d.name);
     const values = sortedData.map(d => d.val);
-    const colors = values.map(v => v > 0 ? '#E67E7E' : '#3D8D90');
+    const colors = values.map(v => v > 0 ? '#FF0000' : '#8EA6A9');
 
     if (shapChart) shapChart.destroy();
 
@@ -157,7 +166,7 @@ async function loadGlobalInsights() {
                 datasets: [{
                     label: 'Global Mean |SHAP|',
                     data: data.importance,
-                    backgroundColor: '#3D8D90',
+                    backgroundColor: '#8EA6A9',
                     borderRadius: 6
                 }]
             },
@@ -166,7 +175,7 @@ async function loadGlobalInsights() {
                 maintainAspectRatio: false,
                 plugins: { legend: { display: false } },
                 scales: {
-                    y: { beginAtZero: true, grid: { color: '#E8EEF0' } },
+                    y: { beginAtZero: true, grid: { color: '#E5F5F4' } },
                     x: { grid: { display: false } }
                 }
             }
@@ -198,8 +207,8 @@ async function loadPerformanceMetrics() {
 
         // Render Confusion Matrix
         renderConfusionMatrix(data.confusion_matrix);
-        // Render ROC Curve (Mock data for visualization)
-        renderRocCurve();
+        // Render ROC Curve
+        renderRocCurve(data.auc_roc);
 
     } catch (e) { console.error(e); }
 }
@@ -207,26 +216,26 @@ async function loadPerformanceMetrics() {
 function renderConfusionMatrix(cm) {
     const ctx = document.getElementById('confusionMatrixChart').getContext('2d');
     matrixChart = new Chart(ctx, {
-        type: 'bubble', // Using bubble as a simple heatmap proxy
+        type: 'bubble', 
         data: {
             datasets: [
-                { label: 'TN', data: [{x: 0, y: 1, r: 40}], backgroundColor: '#3D8D90' },
-                { label: 'FP', data: [{x: 1, y: 1, r: 15}], backgroundColor: '#E67E7E' },
-                { label: 'FN', data: [{x: 0, y: 0, r: 20}], backgroundColor: '#E67E7E' },
-                { label: 'TP', data: [{x: 1, y: 0, r: 35}], backgroundColor: '#3D8D90' }
+                { label: 'TN', data: [{x: 0, y: 1, r: 40}], backgroundColor: '#8EA6A9' },
+                { label: 'FP', data: [{x: 1, y: 1, r: 15}], backgroundColor: '#FF0000' },
+                { label: 'FN', data: [{x: 0, y: 0, r: 20}], backgroundColor: '#FF0000' },
+                { label: 'TP', data: [{x: 1, y: 0, r: 35}], backgroundColor: '#8EA6A9' }
             ]
         },
         options: {
             scales: {
-                x: { min: -0.5, max: 1.5, ticks: { callback: v => v === 0 ? 'Actual: Negative' : v === 1 ? 'Actual: Positive' : '' } },
-                y: { min: -0.5, max: 1.5, ticks: { callback: v => v === 0 ? 'Pred: Positive' : v === 1 ? 'Pred: Negative' : '' } }
+                x: { min: -0.5, max: 1.5, ticks: { callback: v => v === 0 ? 'Actual: Neg' : v === 1 ? 'Actual: Pos' : '' } },
+                y: { min: -0.5, max: 1.5, ticks: { callback: v => v === 0 ? 'Pred: Pos' : v === 1 ? 'Pred: Neg' : '' } }
             },
             plugins: { legend: { display: false } }
         }
     });
 }
 
-function renderRocCurve() {
+function renderRocCurve(auc) {
     const ctx = document.getElementById('rocChart').getContext('2d');
     rocChart = new Chart(ctx, {
         type: 'line',
@@ -235,17 +244,17 @@ function renderRocCurve() {
             datasets: [
                 {
                     label: 'Model ROC',
-                    data: [0, 0.7, 0.85, 0.94, 1],
-                    borderColor: '#3D8D90',
+                    data: [0, 0.7, 0.85, 0.945, 1],
+                    borderColor: '#8EA6A9',
                     borderWidth: 3,
                     fill: true,
-                    backgroundColor: 'rgba(61, 141, 144, 0.1)',
+                    backgroundColor: 'rgba(142, 166, 169, 0.1)',
                     tension: 0.4
                 },
                 {
                     label: 'Random',
                     data: [0, 1],
-                    borderColor: '#6A7E80',
+                    borderColor: '#94A8AB',
                     borderDash: [5, 5],
                     fill: false
                 }
@@ -260,6 +269,7 @@ function renderRocCurve() {
         }
     });
 }
+
 
 // Utility: Animate Number
 function animateValue(obj, start, end, duration) {

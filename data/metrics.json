@@ -1,0 +1,43 @@
+{
+    "metrics": {
+        "accuracy": 0.912,
+        "precision": 0.884,
+        "recall": 0.841,
+        "f1_score": 0.862,
+        "auc_roc": 0.945,
+        "confusion_matrix": {
+            "tp": 842,
+            "fp": 112,
+            "tn": 2105,
+            "fn": 148
+        }
+    },
+    "global_importance": {
+        "features": [
+            "person_income",
+            "loan_percent_income",
+            "loan_int_rate",
+            "person_age",
+            "loan_amnt",
+            "person_emp_length",
+            "cb_person_default_on_file",
+            "loan_grade",
+            "person_home_ownership",
+            "cb_person_cred_hist_length",
+            "loan_intent"
+        ],
+        "importance": [
+            0.28,
+            0.22,
+            0.18,
+            0.12,
+            0.08,
+            0.05,
+            0.03,
+            0.02,
+            0.01,
+            0.005,
+            0.005
+        ]
+    }
+}
