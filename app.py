@@ -137,14 +137,36 @@ def get_metrics():
     except Exception as e:
         return jsonify({'error': 'Could not load metrics'}), 500
 
-@app.route('/global-importance')
-def get_global_importance():
+@app.route('/benchmarking', methods=['POST'])
+def get_benchmarking():
+    """
+    Compares applicant data against cohort averages from the dataset.
+    """
     try:
-        with open(METRICS_FILE, 'r') as f:
-            data = json.load(f)
-        return jsonify(data['global_importance'])
+        data = request.json
+        intent = data.get('loan_intent', 'EDUCATION')
+        
+        # Load dataset to calculate real-time cohort averages
+        # (In production, these would be pre-calculated or cached)
+        df = pd.read_csv('data/credit_risk_dataset.csv')
+        
+        # Filter for the same loan intent
+        cohort = df[df['loan_intent'] == intent]
+        
+        if cohort.empty:
+            cohort = df # Fallback to global if intent is missing
+            
+        benchmarks = {
+            'avg_income': float(cohort['person_income'].mean()),
+            'avg_loan_amnt': float(cohort['loan_amnt'].mean()),
+            'avg_int_rate': float(cohort['loan_int_rate'].mean()),
+            'avg_age': float(cohort['person_age'].mean()),
+            'cohort_size': len(cohort)
+        }
+        
+        return jsonify(benchmarks)
     except Exception as e:
-        return jsonify({'error': 'Could not load importance data'}), 500
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/health')
 def health():

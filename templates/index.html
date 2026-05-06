@@ -32,8 +32,8 @@
                         Risk Predictor
                     </li>
                     <li class="nav-item" data-tab="insights">
-                        <i class="fas fa-chart-line"></i>
-                        Global Insights
+                        <i class="fas fa-users-viewfinder"></i>
+                        Peer Benchmarking
                     </li>
                     <li class="nav-item" data-tab="performance">
                         <i class="fas fa-gauge-high"></i>
@@ -167,6 +167,22 @@
                                     Positive values increase risk, negative values decrease risk relative to baseline.
                                 </p>
                             </div>
+
+                            <!-- Feature: Smart Mitigation Advisor -->
+                            <div class="card" style="margin-top: 24px; border-left: 4px solid var(--brand-red);">
+                                <div class="card-title">
+                                    <span>Mitigation Strategy</span>
+                                    <i class="fas fa-lightbulb" style="color: var(--brand-red);"></i>
+                                </div>
+                                <div id="mitigation-content" class="mitigation-notes">
+                                    <p>Submit analysis to generate risk reduction strategies.</p>
+                                </div>
+                            </div>
+
+                            <!-- Feature: Decision Report Export -->
+                            <button id="export-btn" class="secondary-btn" style="width: 100%; margin-top: 24px;">
+                                <i class="fas fa-file-pdf"></i> EXPORT DECISION REPORT
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -175,13 +191,21 @@
             <!-- TAB: GLOBAL INSIGHTS -->
             <section id="insights" class="tab-content">
                 <header class="section-header">
-                    <h2>Institutional Insights</h2>
-                    <p>Global feature importance and population distribution analysis.</p>
+                    <h2>Peer Benchmarking</h2>
+                    <p>Comparing applicant profile against cohort-specific historical data.</p>
                 </header>
-                <div class="card">
-                    <div class="card-title">Global Feature Importance (SHAP)</div>
-                    <div style="height: 400px;">
-                        <canvas id="globalImportanceChart"></canvas>
+                <div class="grid-2">
+                    <div class="card">
+                        <div class="card-title">Cohort Comparison</div>
+                        <div style="height: 400px;">
+                            <canvas id="benchmarkingChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-title">Cohort Summary</div>
+                        <div id="cohort-summary-text" class="research-notes">
+                            <p>Select an applicant profile to view cohort context.</p>
+                        </div>
                     </div>
                 </div>
             </section>

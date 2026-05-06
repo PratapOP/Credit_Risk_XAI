@@ -242,6 +242,33 @@ input:focus, select:focus {
     background: #E60000;
 }
 
+.secondary-btn {
+    background: var(--brand-white);
+    color: var(--brand-teal);
+    border: 2px solid var(--brand-teal);
+    padding: 14px;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.secondary-btn:hover {
+    background: var(--brand-mint);
+}
+
+.mitigation-notes {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+}
+
+.mitigation-item {
+    margin-bottom: 12px;
+    padding-left: 12px;
+    border-left: 2px solid var(--brand-teal);
+}
+
 /* Results Display */
 .result-summary {
     text-align: center;
@@ -350,9 +377,39 @@ footer {
 /* Utilities */
 .hidden { display: none; }
 
-@media (max-width: 1100px) {
-    .app-container { grid-template-columns: 1fr; }
-    aside { height: auto; position: relative; padding: 24px; }
-    main { padding: 32px 20px; }
-    .grid-2, .perf-grid { grid-template-columns: 1fr; }
+@media print {
+    aside, .predict-btn, #export-btn, .nav-item, footer, .section-header p {
+        display: none !important;
+    }
+    
+    main {
+        padding: 0;
+        margin: 0;
+    }
+    
+    .tab-content {
+        display: block !important;
+        opacity: 1 !important;
+        transform: none !important;
+    }
+    
+    .grid-2, .perf-grid {
+        display: block;
+    }
+    
+    .card {
+        box-shadow: none;
+        border: 1px solid #eee;
+        break-inside: avoid;
+        margin-bottom: 20px;
+    }
+    
+    body {
+        background: white;
+    }
+    
+    .logo {
+        margin-bottom: 30px;
+        color: black;
+    }
 }
